@@ -49,7 +49,7 @@ def plot_roc(y_true,y_pred):
     plt.legend(loc="lower right")
     plt.show()
     
-def preprocess_paper_mill_data(df,param_cols,y_col, non_scale_cols,early_step):
+def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step):
     #add early intervals 
     early_step = early_step
     df['y_early'] = 0
@@ -63,7 +63,7 @@ def preprocess_paper_mill_data(df,param_cols,y_col, non_scale_cols,early_step):
             df.loc[i-early_step:i,'y_rank'] = np.arange(early_step+1,0,-1)
             df.loc[i-early_step:i,'y_count'] = failure_count
             failure_count += 1
-    
+
     sc = StandardScaler()
     df_scaled = pd.DataFrame(data = sc.fit_transform(df[param_cols]),columns=param_cols)
     df_scaled = pd.concat([df[non_scale_cols],df_scaled],axis=1)
