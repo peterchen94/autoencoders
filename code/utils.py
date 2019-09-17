@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from keras.layers import Input,Dense, Dropout
 from keras.models import Model,Sequential
 from sklearn.metrics import roc_curve, auc
@@ -13,13 +13,12 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_mutual_info_score,adjusted_rand_score,v_measure_score, completeness_score, homogeneity_score, silhouette_score,roc_curve, auc, f1_score, precision_recall_curve, precision_score,recall_score,accuracy_score,confusion_matrix
 
 
-def results_df(X_true,X_pred,y_test,y_rank,y_count):
+def results_df(X_true,X_pred,y_test,y_rank):
     residual = X_pred - X_true
     residual_avg = np.abs(np.mean(residual,axis=1))
     df = pd.DataFrame(data = {'residual_avg':residual_avg,
                               'y':y_test,
                               'y_rank':y_rank,
-                              'y_count':y_count
                              })
     return df
 
@@ -54,14 +53,12 @@ def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step):
     early_step = early_step
     df['y_early'] = 0
     df['y_rank'] = 0
-    df['y_count'] = 0
 
     failure_count = 1
     for i in range(df.shape[0]):
         if df.iloc[i]['y'] == 1:
             df.loc[i-early_step:i,'y_early'] = 1
             df.loc[i-early_step:i,'y_rank'] = np.arange(early_step+1,0,-1)
-            df.loc[i-early_step:i,'y_count'] = failure_count
             failure_count += 1
 
     sc = StandardScaler()
@@ -80,17 +77,73 @@ def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step):
     y_rank_nominal = df_scaled[df_scaled[y_col] == 0]['y_rank']
     y_rank_event = df_scaled[df_scaled[y_col] > 0]['y_rank']
 
-    y_count_nominal = df_scaled[df_scaled['y_count'] == 0]['y_count']
-    y_count_event = df_scaled[df_scaled['y_count'] > 0]['y_count']
-    
-    X_train, X_test, y_train, y_test,y_rank_train, y_rank_test,y_count_train, y_count_test = train_test_split(X_nominal, y_nominal, y_rank_nominal,y_count_nominal, test_size=0.05, random_state=0)
+    X_train, X_test, y_train, y_test,y_rank_train, y_rank_test = train_test_split(X_nominal, y_nominal, y_rank_nominal, test_size=0.1, random_state=0)
 
     X_test = X_test.append(X_event)
     y_test = y_test.append(y_event)
     y_rank_test = y_rank_test.append(y_rank_event)
-    y_count_test = y_count_test.append(y_count_event)
     
-    return X_train, X_test, y_train, y_test,y_rank_train, y_rank_test,y_count_train, y_count_test
+    return X_train, X_test, y_train, y_test,y_rank_train, y_rank_test
+
+
+def preprocess_data_cv(df,param_cols,y_col, non_scale_cols,early_step, k = 10):
+    #add early intervals
+
+    early_step = early_step
+    df['y_early'] = 0
+    df['y_rank'] = 0
+
+    failure_count = 1
+    for i in range(df.shape[0]):
+        if df.iloc[i]['y'] == 1:
+            df.loc[i-early_step:i,'y_early'] = 1
+            df.loc[i-early_step:i,'y_rank'] = np.arange(early_step+1,0,-1)
+            failure_count += 1
+
+    sc = StandardScaler()
+    df_scaled = pd.DataFrame(data = sc.fit_transform(df[param_cols]),columns=param_cols)
+    df_scaled = pd.concat([df[non_scale_cols],df_scaled],axis=1)
+
+    X = df_scaled[param_cols]
+    y = df_scaled[y_col]
+    
+    X_nominal = df_scaled[df_scaled[y_col] == 0][param_cols]
+    X_event = df_scaled[df_scaled[y_col] > 0][param_cols]
+
+    y_nominal = df_scaled[df_scaled[y_col] == 0][y_col]
+    y_event = df_scaled[df_scaled[y_col] > 0][y_col]
+
+    y_rank_nominal = df_scaled[df_scaled[y_col] == 0]['y_rank']
+    y_rank_event = df_scaled[df_scaled[y_col] > 0]['y_rank']
+    
+    X_train_list = []
+    y_train_list = []
+
+    kf=KFold(n_splits=k,shuffle=True)
+
+    X_train_list =[]
+    y_train_list = []
+    y_rank_train_list = []
+    X_test_list = []
+    y_test_list = []
+    y_rank_test_list = []
+
+    for train_index,test_index in kf.split(X_nominal):
+        X_train, y_train, y_rank_train = X_nominal.iloc[train_index], y_nominal.iloc[train_index], y_rank_nominal.iloc[train_index]
+        X_test, y_test, y_rank_test = X_nominal.iloc[test_index], y_nominal.iloc[test_index], y_rank_nominal.iloc[test_index]
+        
+        X_test = X_test.append(X_event)
+        y_test = y_test.append(y_event)
+        y_rank_test = y_rank_test.append(y_rank_event)
+        
+        X_train_list.append(X_train)
+        y_train_list.append(y_train)
+        y_rank_train_list.append(y_rank_train)
+        X_test_list.append(X_test)
+        y_test_list.append(y_test)
+        y_rank_test_list.append(y_rank_test)
+
+    return X_train_list, X_test_list, y_train_list, y_test_list,y_rank_train_list, y_rank_test_list
 
 
 def fit_clusters(X,y,clusters, method, seed=0):
