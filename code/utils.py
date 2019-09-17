@@ -50,7 +50,6 @@ def plot_roc(y_true,y_pred):
     
 def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step):
     #add early intervals 
-    early_step = early_step
     df['y_early'] = 0
     df['y_rank'] = 0
 
@@ -131,7 +130,7 @@ def preprocess_data_cv(df,param_cols,y_col, non_scale_cols,early_step, k = 10):
     for train_index,test_index in kf.split(X_nominal):
         X_train, y_train, y_rank_train = X_nominal.iloc[train_index], y_nominal.iloc[train_index], y_rank_nominal.iloc[train_index]
         X_test, y_test, y_rank_test = X_nominal.iloc[test_index], y_nominal.iloc[test_index], y_rank_nominal.iloc[test_index]
-        
+
         X_test = X_test.append(X_event)
         y_test = y_test.append(y_event)
         y_rank_test = y_rank_test.append(y_rank_event)
