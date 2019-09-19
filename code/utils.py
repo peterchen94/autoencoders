@@ -14,6 +14,11 @@ from sklearn.metrics import adjusted_mutual_info_score,adjusted_rand_score,v_mea
 
 
 def results_df(X_true,X_pred,y_test,y_rank):
+    X_true = np.array(X_true)
+    X_pred = np.array(X_pred)
+    y_test = np.array(y_test)
+    y_rank = np.array(y_rank)
+
     residual = X_pred - X_true
     residual_avg = np.abs(np.mean(residual,axis=1))
     df = pd.DataFrame(data = {'residual_avg':residual_avg,
