@@ -53,21 +53,24 @@ def plot_roc(y_true,y_pred):
     plt.legend(loc="lower right")
     plt.show()
     
-def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step):
+def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step,test_size=.1,timeseries = True):
     #add early intervals 
-    df['y_early'] = 0
-    df['y_rank'] = 0
-
-    failure_count = 1
-    for i in range(df.shape[0]):
-        if df.iloc[i]['y'] == 1:
-            df.loc[i-early_step:i,'y_early'] = 1
-            df.loc[i-early_step:i,'y_rank'] = np.arange(early_step+1,0,-1)
-            failure_count += 1
+    
+    if timeseries:
+        df['y_early'] = 0
+        df['y_rank'] = 0
+        failure_count = 1
+        for i in range(df.shape[0]):
+            if df.iloc[i]['y'] == 1:
+                df.loc[i-early_step:i,'y_early'] = 1
+                df.loc[i-early_step:i,'y_rank'] = np.arange(early_step+1,0,-1)
+                failure_count += 1
+    else:
+        df['y_rank'] = df[y_col]
 
     sc = StandardScaler()
     df_scaled = pd.DataFrame(data = sc.fit_transform(df[param_cols]),columns=param_cols)
-    df_scaled = pd.concat([df[non_scale_cols],df_scaled],axis=1)
+    df_scaled = pd.concat([df[non_scale_cols],df_scaled], ignore_index=True,axis=1)
     
     X = df_scaled[param_cols]
     y = df_scaled[y_col]
@@ -75,13 +78,13 @@ def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step):
     X_nominal = df_scaled[df_scaled[y_col] == 0][param_cols]
     X_event = df_scaled[df_scaled[y_col] > 0][param_cols]
 
-    y_nominal = df_scaled[df_scaled[y_col] == 0][y_col]
-    y_event = df_scaled[df_scaled[y_col] > 0][y_col]
+    y_nominal = df[df[y_col] == 0][y_col]
+    y_event = df[df[y_col] > 0][y_col]
 
-    y_rank_nominal = df_scaled[df_scaled[y_col] == 0]['y_rank']
-    y_rank_event = df_scaled[df_scaled[y_col] > 0]['y_rank']
+    y_rank_nominal = df[df[y_col] == 0]['y_rank']
+    y_rank_event = df[df[y_col] > 0]['y_rank']
 
-    X_train, X_test, y_train, y_test,y_rank_train, y_rank_test = train_test_split(X_nominal, y_nominal, y_rank_nominal, test_size=0.1, random_state=0)
+    X_train, X_test, y_train, y_test,y_rank_train, y_rank_test = train_test_split(X_nominal, y_nominal, y_rank_nominal, test_size=test_size, random_state=0)
 
     X_test = X_test.append(X_event)
     y_test = y_test.append(y_event)
