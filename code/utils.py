@@ -70,7 +70,7 @@ def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step,test_size=.1,
 
     sc = StandardScaler()
     df_scaled = pd.DataFrame(data = sc.fit_transform(df[param_cols]),columns=param_cols)
-    df_scaled = pd.concat([df[non_scale_cols],df_scaled], ignore_index=True,axis=1)
+    df_scaled = pd.concat([df[non_scale_cols],df_scaled],axis=1)
     
     X = df_scaled[param_cols]
     y = df_scaled[y_col]
