@@ -10,8 +10,8 @@ from keras.models import Model,Sequential
 from sklearn.metrics import roc_curve, auc
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
-from sklearn.metrics import adjusted_mutual_info_score,adjusted_rand_score,v_measure_score, completeness_score, homogeneity_score, silhouette_score,roc_curve, auc, f1_score, precision_recall_curve, precision_score,recall_score,accuracy_score,confusion_matrix
-
+from sklearn.metrics import adjusted_mutual_info_score,adjusted_rand_score,v_measure_score, completeness_score, homogeneity_score, silhouette_score,roc_curve, auc, f1_score, average_precision_score, precision_recall_curve, precision_score,recall_score,accuracy_score,confusion_matrix
+from inspect import signature
 
 def results_df(X_true,X_pred,y_test,y_rank):
     X_true = np.array(X_true)
@@ -51,6 +51,30 @@ def plot_roc(y_true,y_pred):
     plt.ylabel('True Positive Rate')
     plt.title('ROC for reconstruction error classification')
     plt.legend(loc="lower right")
+    plt.show()
+
+def plot_pr_curve(y_true,y_pred):
+    precision, recall, _ = precision_recall_curve(y_true, y_pred)
+    average_precision = average_precision_score(y_true, y_pred)
+
+    plt.figure()
+    area = auc(recall, precision)
+
+    step_kwargs = ({'step': 'post'}
+                   if 'step' in signature(plt.fill_between).parameters
+                   else {})
+    plt.step(recall, precision, color='b', alpha=0.2,
+             where='post')
+    plt.fill_between(recall, precision, alpha=0.2, color='b', **step_kwargs)
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+
+    plt.title('Precision-Recall curve: AUC={0:0.2f}'.format(
+          area))
+
     plt.show()
     
 def preprocess_data(df,param_cols,y_col, non_scale_cols,early_step,test_size=.1,timeseries = True):
