@@ -177,42 +177,6 @@ def preprocess_data_cv(df,param_cols,y_col, non_scale_cols,early_step, k = 10):
     return X_train_list, X_test_list, y_train_list, y_test_list,y_rank_train_list, y_rank_test_list
 
 
-def fit_clusters(X,y,clusters, method, seed=0):
-    model_dict={'clusters':clusters,'sse':[],'f1':[],'adj_rand':[],'adj_MI':[],'complete':[],'homo':[]}
-    
-    for k in clusters:
-        model=KMeans(n_clusters=k,random_state=seed)
-        model.fit(X)
-        
-        labels = model.predict(X)
-        model_dict['sse'].append(-model.score(X,labels))
-        model_dict['adj_MI'].append(adjusted_mutual_info_score(y,labels))   
-        model_dict['adj_rand'].append(adjusted_rand_score(y,labels))
-        model_dict['complete'].append(completeness_score(y,labels))
-        model_dict['homo'].append(homogeneity_score(y,labels))
-        
-    return model_dict,labels 
 
 
 
-def plot_clusters(model_dict):
-    f=plt.figure(figsize=(13,4))
-    ax1,ax2,ax3 = f.subplots(1, 3)
-
-    ax1.plot(model_dict['clusters'],model_dict['sse'],'r-')
-    ax1.set_title('K means metrics')
-    ax1.legend(['SSE'],loc=7)
-    ax1.set_xlabel('n_clusters')
-    ax1.set_ylabel('SSE')
-    
-    ax2.plot(model_dict['clusters'],model_dict['adj_MI'],'b-')
-    ax2.plot(model_dict['clusters'],model_dict['adj_rand'],'b--')
-    ax2.legend(['adj_MI','adj_rand'],loc=7)
-    ax2.set_xlabel('n_clusters')
-    ax2.set_ylabel('value')
-
-    ax3.plot(model_dict['clusters'],model_dict['homo'],'g-')
-    ax3.plot(model_dict['clusters'],model_dict['complete'],'g--')
-    ax3.legend(['homogeneity','completeness'],loc=7)
-    ax3.set_xlabel('n_clusters')
-    ax3.set_ylabel('value')
